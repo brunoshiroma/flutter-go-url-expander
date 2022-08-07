@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_share/flutter_share.dart';
-import 'package:http/http.dart' as http;
 import 'package:url_expander/WebViewWidget.dart';
+import 'package:url_expander/goUrlExpanderClient.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 void main() {
@@ -63,7 +63,10 @@ class _MyHomePageState extends State<MyHomePage> with WidgetsBindingObserver {
       setState(() {
         url = sharedData;
       });
-      getUrlExpanded(sharedData);
+      var expandedUrl = await GoUrlExpanderClient.getUrlExpanded(url);
+      setState(() {
+        expanded = expandedUrl!;
+      });
     }
   }
 
@@ -72,56 +75,36 @@ class _MyHomePageState extends State<MyHomePage> with WidgetsBindingObserver {
       return;
     }
 
-    var sanitizedUrl = RegExp(
-      r'.*(http[s]{0,1}:\/\/\S+).*',
-    ).firstMatch(url)?.group(0);
-
-    if (sanitizedUrl == null) {
-      return;
+    @override
+    void initState() {
+      super.initState();
+      getSharedData();
+      WidgetsBinding.instance.addObserver(this);
     }
 
-    sanitizedUrl = Uri.encodeComponent(sanitizedUrl);
-
-    var requestUrl = Uri.parse(
-        'https://go-url-expander.herokuapp.com/expand?url=$sanitizedUrl');
-    var response = await http.get(requestUrl);
-
-    if (response.statusCode == 200) {
-      setState(() {
-        expanded = response.body;
-      });
-    }
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    getSharedData();
-    WidgetsBinding.instance.addObserver(this);
-  }
-
-  @override
-  void didUpdateWidget(MyHomePage old) {
-    super.didUpdateWidget(old);
-    setState(() {
-      url = '';
-      expanded = '';
-    });
-    getSharedData();
-  }
-
-  @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    super.didChangeAppLifecycleState(state);
-    if (state == AppLifecycleState.resumed) {
+    @override
+    void didUpdateWidget(MyHomePage old) {
+      super.didUpdateWidget(old);
       setState(() {
         url = '';
         expanded = '';
       });
       getSharedData();
-    } else if (state == AppLifecycleState.inactive ||
-        state == AppLifecycleState.paused) {
-      SystemNavigator.pop(animated: false);
+    }
+
+    @override
+    void didChangeAppLifecycleState(AppLifecycleState state) {
+      super.didChangeAppLifecycleState(state);
+      if (state == AppLifecycleState.resumed) {
+        setState(() {
+          url = '';
+          expanded = '';
+        });
+        getSharedData();
+      } else if (state == AppLifecycleState.inactive ||
+          state == AppLifecycleState.paused) {
+        SystemNavigator.pop(animated: false);
+      }
     }
   }
 
@@ -190,7 +173,11 @@ class _MyHomePageState extends State<MyHomePage> with WidgetsBindingObserver {
                 tooltip: 'Open Web ( internal )',
                 onPressed: () async {
                   var url = Uri.parse(expanded);
-                  Navigator.push(context, MaterialPageRoute(builder: (context) => WebViewWidget(url: expanded)));
+                  Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (context) =>
+                              WebViewWidget(url: url.toString())));
                 },
                 child: const Icon(Icons.open_in_browser),
               )
