@@ -1,3 +1,5 @@
+import 'dart:developer' as developer;
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_share/flutter_share.dart';
@@ -10,6 +12,16 @@ void main() {
 }
 
 class UrlExpanderApp extends StatelessWidget {
+  static const ValueKey<String> externalBrowserButtonId =
+      ValueKey('EXTERNAL_BROWSER_BUTTON_ID');
+
+  static const ValueKey<String> internalBrowserButtonId =
+      ValueKey('INTERNAL_BROWSER_BUTTON_ID');
+
+  static const ValueKey<String> copyButtonId = ValueKey('COPY_BUTTON_ID');
+
+  static const ValueKey<String> shareButtonId = ValueKey('SHARE_BUTTON_ID');
+
   const UrlExpanderApp({Key? key}) : super(key: key);
 
   // This widget is the root of your application.
@@ -17,6 +29,7 @@ class UrlExpanderApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'URL Expander',
+      debugShowCheckedModeBanner: false,
       theme: ThemeData(
         // This is the theme of your application.
         //
@@ -27,7 +40,7 @@ class UrlExpanderApp extends StatelessWidget {
         // or simply save your changes to "hot reload" in a Flutter IDE).
         // Notice that the counter didn't reset back to zero; the application
         // is not restarted.
-        primarySwatch: Colors.blue,
+        primarySwatch: Colors.indigo,
       ),
       home: const MyHomePage(title: 'URL Expander'),
     );
@@ -58,6 +71,7 @@ class _MyHomePageState extends State<MyHomePage> with WidgetsBindingObserver {
   String expanded = '';
 
   void getSharedData() async {
+    developer.log('CALLING getSharedData');
     var sharedData = await platform.invokeMethod('getSharedText');
     if (sharedData != null) {
       setState(() {
@@ -74,38 +88,42 @@ class _MyHomePageState extends State<MyHomePage> with WidgetsBindingObserver {
     if (url == 'NO DATA') {
       return;
     }
+  }
 
-    @override
-    void initState() {
-      super.initState();
-      getSharedData();
-      WidgetsBinding.instance.addObserver(this);
-    }
+  @override
+  void initState() {
+    super.initState();
+    getSharedData();
+    WidgetsBinding.instance.addObserver(this);
+  }
 
-    @override
-    void didUpdateWidget(MyHomePage old) {
-      super.didUpdateWidget(old);
+  @override
+  void didUpdateWidget(MyHomePage old) {
+    super.didUpdateWidget(old);
+    setState(() {
+      url = '';
+      expanded = '';
+    });
+    getSharedData();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    if (state == AppLifecycleState.resumed) {
       setState(() {
         url = '';
         expanded = '';
       });
       getSharedData();
+    } else if (state == AppLifecycleState.inactive ||
+        state == AppLifecycleState.paused) {
+      SystemNavigator.pop(animated: false);
     }
+  }
 
-    @override
-    void didChangeAppLifecycleState(AppLifecycleState state) {
-      super.didChangeAppLifecycleState(state);
-      if (state == AppLifecycleState.resumed) {
-        setState(() {
-          url = '';
-          expanded = '';
-        });
-        getSharedData();
-      } else if (state == AppLifecycleState.inactive ||
-          state == AppLifecycleState.paused) {
-        SystemNavigator.pop(animated: false);
-      }
-    }
+  bool shouldClickEnabled() {
+    return expanded != '';
   }
 
   @override
@@ -146,39 +164,52 @@ class _MyHomePageState extends State<MyHomePage> with WidgetsBindingObserver {
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
               FloatingActionButton(
+                key: UrlExpanderApp.copyButtonId,
                 tooltip: 'Copy to clipboard',
-                onPressed: () async {
-                  Clipboard.setData(ClipboardData(text: expanded));
-                  ScaffoldMessenger.of(context)
-                      .showSnackBar(const SnackBar(content: Text("Copied")));
-                },
+                onPressed: shouldClickEnabled()
+                    ? () async {
+                        Clipboard.setData(ClipboardData(text: expanded));
+                        ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text("Copied")));
+                      }
+                    : null,
                 child: const Icon(Icons.copy),
               ),
               FloatingActionButton(
+                  key: UrlExpanderApp.shareButtonId,
                   tooltip: 'Share',
-                  onPressed: () async {
-                    FlutterShare.share(title: 'Open with', linkUrl: expanded);
-                  },
+                  onPressed: shouldClickEnabled()
+                      ? () async {
+                          FlutterShare.share(
+                              title: 'Open with', linkUrl: expanded);
+                        }
+                      : null,
                   child: const Icon(Icons.offline_share)),
               FloatingActionButton(
+                key: UrlExpanderApp.externalBrowserButtonId,
                 tooltip: 'Open external Browser',
-                onPressed: () async {
-                  var url = Uri.parse(expanded);
-                  launchUrl(url,
-                      mode: LaunchMode.externalNonBrowserApplication);
-                },
+                onPressed: shouldClickEnabled()
+                    ? () async {
+                        var url = Uri.parse(expanded);
+                        launchUrl(url,
+                            mode: LaunchMode.externalNonBrowserApplication);
+                      }
+                    : null,
                 child: const Icon(Icons.open_in_new),
               ),
               FloatingActionButton(
+                key: UrlExpanderApp.internalBrowserButtonId,
                 tooltip: 'Open Web ( internal )',
-                onPressed: () async {
-                  var url = Uri.parse(expanded);
-                  Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                          builder: (context) =>
-                              WebViewWidget(url: url.toString())));
-                },
+                onPressed: shouldClickEnabled()
+                    ? () async {
+                        var url = Uri.parse(expanded);
+                        Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (context) =>
+                                    WebViewWidget(url: url.toString())));
+                      }
+                    : null,
                 child: const Icon(Icons.open_in_browser),
               )
             ],
