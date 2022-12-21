@@ -18,7 +18,7 @@ class GoUrlExpanderClient {
     sanitizedUrl = Uri.encodeComponent(sanitizedUrl);
 
     var requestUrl = Uri.parse(
-        'https://go-url-expander.herokuapp.com/expand?url=$sanitizedUrl');
+        'https://go-url-expander.brunoshiroma.com/expand?url=$sanitizedUrl');
     var response = await http.get(requestUrl);
 
     if (response.statusCode == 200) {
