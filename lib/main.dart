@@ -2,7 +2,7 @@ import 'dart:developer' as developer;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_share/flutter_share.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:url_expander/WebViewWidget.dart';
 import 'package:url_expander/goUrlExpanderClient.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -180,8 +180,10 @@ class _MyHomePageState extends State<MyHomePage> with WidgetsBindingObserver {
                   tooltip: 'Share',
                   onPressed: shouldClickEnabled()
                       ? () async {
-                          FlutterShare.share(
-                              title: 'Open with', linkUrl: expanded);
+                          SharePlus.instance.share(ShareParams(
+                            title: 'Open with',
+                            uri: Uri.parse(expanded)
+                          ));
                         }
                       : null,
                   child: const Icon(Icons.offline_share)),
@@ -207,7 +209,7 @@ class _MyHomePageState extends State<MyHomePage> with WidgetsBindingObserver {
                             context,
                             MaterialPageRoute(
                                 builder: (context) =>
-                                    WebViewWidget(url: url.toString())));
+                                    ExpanderWebViewWidget(url: url.toString())));
                       }
                     : null,
                 child: const Icon(Icons.open_in_browser),
