@@ -1,30 +1,30 @@
-name: build-android
+name: build
 
 on:
   workflow_dispatch:
   push:
 
 jobs:
-  build:
+  android:
     name: build android
-    runs-on: macos-latest
+    runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Install JDK 17
-        uses: actions/setup-java@v4
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: 17
+      - uses: gradle/actions/setup-gradle@v4
+      - run: gradle :composeApp:testDebugUnitTest :composeApp:assembleDebug
 
-      - uses: subosito/flutter-action@v2
+  ios:
+    name: build ios framework
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
         with:
-          channel: 'stable'
-          architecture: x64
-
-      - run: flutter pub get
-      - name: test project
-        run: flutter test
-      - run: flutter build ios --release --no-codesign
-      - run: flutter build apk
+          distribution: temurin
+          java-version: 17
+      - uses: gradle/actions/setup-gradle@v4
+      - run: gradle :composeApp:iosSimulatorArm64Test :composeApp:linkDebugFrameworkIosSimulatorArm64

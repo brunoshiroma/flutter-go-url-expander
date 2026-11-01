@@ -47,3 +47,8 @@ app.*.map.json
 build
 android/build
 android/app/.cxx
+# Gradle / Kotlin
+.gradle/
+build/
+local.properties
+.kotlin/
